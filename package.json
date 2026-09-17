@@ -1,0 +1,57 @@
+{
+  "name": "aerovolt",
+  "productName": "AEROVOLT",
+  "version": "1.0.0",
+  "description": "Minimalist heavy-metal flying car game — pick a car, fly, don't crash or fall.",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "node server.js",
+    "electron": "electron .",
+    "dist:win": "electron-builder --win nsis",
+    "dist:appx": "electron-builder --win appx"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^44.4.1",
+    "electron-builder": "^26.15.3",
+    "three": "^0.186.0"
+  },
+  "build": {
+    "appId": "com.aerovolt.game",
+    "productName": "AEROVOLT",
+    "files": [
+      "web/**/*",
+      "electron/**/*",
+      "server.js",
+      "package.json",
+      "!**/*.map"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "appx": {
+      "identityName": "AEROVOLT",
+      "publisher": "CN=REPLACE-WITH-YOUR-PARTNER-CENTER-PUBLISHER-ID",
+      "publisherDisplayName": "REPLACE-WITH-YOUR-NAME",
+      "applicationId": "AEROVOLT"
+    }
+  }
+}

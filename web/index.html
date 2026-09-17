@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>AEROVOLT — Flying Car</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+  <!-- ===================== MAIN MENU ===================== -->
+  <section id="screen-menu" class="screen active">
+    <div class="bg-grid"></div>
+    <div class="menu-content">
+      <h1 class="logo">AERO<span>VOLT</span></h1>
+      <p class="tagline">heavy metal. no wings. no mercy.</p>
+      <div class="menu-actions">
+        <button class="btn btn-primary" id="btn-play">PLAY</button>
+        <button class="btn btn-ghost" id="btn-howto">HOW TO PLAY</button>
+      </div>
+      <p class="hint">crash or fall off the map and it's over.</p>
+    </div>
+  </section>
+
+  <!-- ===================== HOW TO PLAY ===================== -->
+  <section id="screen-howto" class="screen">
+    <div class="panel">
+      <h2>CONTROLS</h2>
+      <ul class="controls-list">
+        <li><span class="key">W / ↑</span> Thrust forward</li>
+        <li><span class="key">S / ↓</span> Brake / Reverse</li>
+        <li><span class="key">A D / ← →</span> Steer</li>
+        <li><span class="key">SPACE</span> Vertical thrusters (fly)</li>
+        <li><span class="key">SHIFT</span> Boost</li>
+        <li><span class="key">R</span> Restart run</li>
+      </ul>
+      <p class="rule">Land level and slow, or you crash. Fly off the platform edge and you fall. Either one ends the run.</p>
+      <button class="btn btn-primary" id="btn-back-menu">BACK</button>
+    </div>
+  </section>
+
+  <!-- ===================== CAR SELECT ===================== -->
+  <section id="screen-select" class="screen">
+    <div class="select-header">
+      <h2>CHOOSE YOUR CAR</h2>
+      <button class="btn btn-ghost btn-small" id="btn-select-back">BACK</button>
+    </div>
+    <div class="select-body">
+      <div class="car-stage">
+        <canvas id="car-preview"></canvas>
+        <div class="car-name" id="car-name">—</div>
+      </div>
+      <div class="car-info">
+        <div class="stat-row">
+          <span class="stat-label">POWER</span>
+          <div class="stat-bar"><div class="stat-fill" id="stat-power"></div></div>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">MASS</span>
+          <div class="stat-bar"><div class="stat-fill" id="stat-mass"></div></div>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">HANDLING</span>
+          <div class="stat-bar"><div class="stat-fill" id="stat-handling"></div></div>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">LIFT</span>
+          <div class="stat-bar"><div class="stat-fill" id="stat-lift"></div></div>
+        </div>
+        <p class="car-desc" id="car-desc"></p>
+        <div class="car-picker">
+          <button class="btn btn-ghost btn-round" id="car-prev">‹</button>
+          <div class="car-dots" id="car-dots"></div>
+          <button class="btn btn-ghost btn-round" id="car-next">›</button>
+        </div>
+        <button class="btn btn-primary btn-wide" id="btn-launch">LOAD GAME</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== LOADING ===================== -->
+  <section id="screen-loading" class="screen">
+    <div class="loading-wrap">
+      <div class="loading-bar-track"><div class="loading-bar-fill" id="loading-fill"></div></div>
+      <p class="loading-label" id="loading-label">LOADING WORLD…</p>
+    </div>
+  </section>
+
+  <!-- ===================== GAME ===================== -->
+  <section id="screen-game" class="screen">
+    <canvas id="game-canvas"></canvas>
+
+    <div class="hud">
+      <div class="hud-top-left">
+        <div class="hud-block">
+          <span class="hud-label">SPEED</span>
+          <span class="hud-value" id="hud-speed">0</span>
+          <span class="hud-unit">km/h</span>
+        </div>
+        <div class="hud-block">
+          <span class="hud-label">ALT</span>
+          <span class="hud-value" id="hud-alt">0</span>
+          <span class="hud-unit">m</span>
+        </div>
+      </div>
+      <div class="hud-top-right">
+        <div class="hud-block small">
+          <span class="hud-label">DISTANCE</span>
+          <span class="hud-value" id="hud-distance">0</span>
+          <span class="hud-unit">m</span>
+        </div>
+        <div class="hud-block small">
+          <span class="hud-label">BEST</span>
+          <span class="hud-value" id="hud-best">0</span>
+          <span class="hud-unit">m</span>
+        </div>
+      </div>
+      <div class="hud-bottom">
+        <div class="gauge">
+          <span class="hud-label">BOOST</span>
+          <div class="gauge-track"><div class="gauge-fill" id="gauge-boost"></div></div>
+        </div>
+        <div class="gauge">
+          <span class="hud-label">THRUST</span>
+          <div class="gauge-track"><div class="gauge-fill thrust" id="gauge-thrust"></div></div>
+        </div>
+      </div>
+      <div class="hud-warn" id="hud-warn"></div>
+    </div>
+
+    <div class="crash-flash" id="crash-flash"></div>
+  </section>
+
+  <!-- ===================== GAME OVER ===================== -->
+  <section id="screen-over" class="screen">
+    <div class="panel over-panel">
+      <h2 id="over-title">CRASHED</h2>
+      <p class="over-sub" id="over-sub">Your car didn't make it.</p>
+      <div class="over-stats">
+        <div><span class="over-num" id="over-distance">0</span><span class="over-label">METERS</span></div>
+        <div><span class="over-num" id="over-best">0</span><span class="over-label">BEST</span></div>
+      </div>
+      <div class="menu-actions">
+        <button class="btn btn-primary" id="btn-retry">RETRY</button>
+        <button class="btn btn-ghost" id="btn-change-car">CHANGE CAR</button>
+        <button class="btn btn-ghost" id="btn-quit-menu">MAIN MENU</button>
+      </div>
+    </div>
+  </section>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
