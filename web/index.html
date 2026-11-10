@@ -2,149 +2,140 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>AEROVOLT — Flying Car</title>
-<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hill Tracts Express — পাহাড়ি এক্সপ্রেস</title>
+<link rel="icon" href="data:," />
 <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
+  <canvas id="game-canvas"></canvas>
 
-  <!-- ===================== MAIN MENU ===================== -->
-  <section id="screen-menu" class="screen active">
-    <div class="bg-grid"></div>
-    <div class="menu-content">
-      <h1 class="logo">AERO<span>VOLT</span></h1>
-      <p class="tagline">heavy metal. no wings. no mercy.</p>
-      <div class="menu-actions">
-        <button class="btn btn-primary" id="btn-play">PLAY</button>
-        <button class="btn btn-ghost" id="btn-howto">HOW TO PLAY</button>
+  <!-- ===================== LOADING ===================== -->
+  <section id="screen-loading" class="screen active">
+    <div class="loading-card">
+      <div class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><rect x="6" y="14" width="52" height="34" rx="7" fill="#f3eee0"/><rect x="6" y="38" width="52" height="10" rx="3" fill="#0f6b3c"/><rect x="6" y="35" width="52" height="3" fill="#c8102e"/><rect x="11" y="19" width="42" height="12" rx="2" fill="#1d2a33"/><circle cx="18" cy="49" r="5" fill="#151515"/><circle cx="46" cy="49" r="5" fill="#151515"/></svg>
       </div>
-      <p class="hint">crash or fall out of the sky and it's over.</p>
+      <h1 class="loading-title">Hill Tracts Express</h1>
+      <p class="bn loading-bn">পাহাড়ি এক্সপ্রেস</p>
+      <div class="bar"><div class="bar-fill" id="loading-fill"></div></div>
+      <p class="loading-label" id="loading-label">Starting…</p>
     </div>
+  </section>
+
+  <!-- ===================== MENU ===================== -->
+  <section id="screen-menu" class="screen">
+    <div class="menu-shade"></div>
+    <div class="menu-panel">
+      <p class="kicker">Bandarban → Nilgiri · Chittagong Hill Tracts</p>
+      <h1 class="title">Hill Tracts<br />Express</h1>
+      <p class="title-bn bn">পাহাড়ি এক্সপ্রেস</p>
+      <p class="lede">Drive the winding mountain road above the lake. Keep left, stop for passengers at every village, and get everyone up to Nilgiri safely.</p>
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-play">Start route</button>
+        <button class="btn btn-ghost" id="btn-howto">How to play</button>
+      </div>
+      <p class="best" id="menu-best"></p>
+    </div>
+    <ol class="route-card" aria-label="Stops on the route">
+      <li><span class="dot start"></span><b>Bandarban</b><span class="bn">বান্দরবান</span></li>
+      <li><span class="dot"></span><b>Meghla</b><span class="bn">মেঘলা</span></li>
+      <li><span class="dot"></span><b>Shoilo Propat</b><span class="bn">শৈলপ্রপাত</span></li>
+      <li><span class="dot"></span><b>Chimbuk</b><span class="bn">চিম্বুক</span></li>
+      <li><span class="dot end"></span><b>Nilgiri</b><span class="bn">নীলগিরি</span></li>
+    </ol>
   </section>
 
   <!-- ===================== HOW TO PLAY ===================== -->
-  <section id="screen-howto" class="screen">
+  <section id="screen-howto" class="screen dim">
     <div class="panel">
-      <h2>CONTROLS</h2>
-      <ul class="controls-list">
-        <li><span class="key">W / ↑</span> Thrust forward</li>
-        <li><span class="key">S / ↓</span> Brake / Reverse</li>
-        <li><span class="key">A D / ← →</span> Steer</li>
-        <li><span class="key">SPACE</span> Vertical thrusters (fly)</li>
-        <li><span class="key">SHIFT</span> Boost</li>
-        <li><span class="key">R</span> Restart run</li>
-      </ul>
-      <p class="rule">Hit a pillar or a wall and you crash. Drop too low or drift off the side of the corridor and you fall. Either one ends the run. Thrusters cut out at max altitude, so the only way past a wall is through its gap.</p>
-      <button class="btn btn-primary" id="btn-back-menu">BACK</button>
+      <h2>How to drive</h2>
+      <div class="howto-grid">
+        <ul class="keys">
+          <li><kbd>W</kbd><kbd>↑</kbd><span>Accelerate</span></li>
+          <li><kbd>S</kbd><kbd>↓</kbd><span>Brake · hold when stopped to reverse</span></li>
+          <li><kbd>A</kbd><kbd>D</kbd><span>Steer</span></li>
+          <li><kbd>Space</kbd><span>Handbrake</span></li>
+          <li><kbd>H</kbd><span>Horn</span></li>
+          <li><kbd>C</kbd><span>Chase / driver's seat camera</span></li>
+          <li><kbd>Drag</kbd><span>Look around</span></li>
+          <li><kbd>R</kbd><span>Put the bus back on the road</span></li>
+          <li><kbd>M</kbd><span>Sound on / off</span></li>
+          <li><kbd>Esc</kbd><span>Pause</span></li>
+        </ul>
+        <ul class="rules">
+          <li><b>Keep left.</b> Bangladesh drives on the left. Oncoming jeeps, CNGs and trucks use the right lane — hit one and the run is over.</li>
+          <li><b>Stop at every bus stop.</b> Pull into the green zone on the left and come to a full stop. The doors open and passengers walk aboard.</li>
+          <li><b>Mind the edge.</b> Striped bollards guard the drops. Scraping them costs points; leaving the road puts you back on it with a penalty.</li>
+          <li><b>Use the hills.</b> The bus slows on climbs and runs away on descents — brake before the hairpins.</li>
+        </ul>
+      </div>
+      <button class="btn btn-primary" id="btn-howto-back">Got it</button>
     </div>
   </section>
 
-  <!-- ===================== CAR SELECT ===================== -->
-  <section id="screen-select" class="screen">
-    <div class="select-header">
-      <h2>CHOOSE YOUR CAR</h2>
-      <button class="btn btn-ghost btn-small" id="btn-select-back">BACK</button>
+  <!-- ===================== HUD ===================== -->
+  <section id="screen-game" class="screen hud">
+    <div class="hud-stop">
+      <span class="hud-label" id="hud-stop-label">Next stop</span>
+      <span class="hud-stop-name" id="hud-stop-name">—</span>
+      <span class="hud-stop-bn bn" id="hud-stop-bn"></span>
+      <span class="hud-stop-dist" id="hud-stop-dist"></span>
     </div>
-    <div class="select-body">
-      <div class="car-stage">
-        <canvas id="car-preview"></canvas>
-        <div class="car-name" id="car-name">—</div>
-      </div>
-      <div class="car-info">
-        <div class="stat-row">
-          <span class="stat-label">POWER</span>
-          <div class="stat-bar"><div class="stat-fill" id="stat-power"></div></div>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">MASS</span>
-          <div class="stat-bar"><div class="stat-fill" id="stat-mass"></div></div>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">HANDLING</span>
-          <div class="stat-bar"><div class="stat-fill" id="stat-handling"></div></div>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">LIFT</span>
-          <div class="stat-bar"><div class="stat-fill" id="stat-lift"></div></div>
-        </div>
-        <p class="car-desc" id="car-desc"></p>
-        <div class="car-picker">
-          <button class="btn btn-ghost btn-round" id="car-prev">‹</button>
-          <div class="car-dots" id="car-dots"></div>
-          <button class="btn btn-ghost btn-round" id="car-next">›</button>
-        </div>
-        <button class="btn btn-primary btn-wide" id="btn-launch">LOAD GAME</button>
+
+    <div class="hud-stats">
+      <div class="stat"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><b id="hud-time">0:00</b></div>
+      <div class="stat"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="3.5" fill="currentColor"/><path d="M5 21c0-4 3-7 7-7s7 3 7 7z" fill="currentColor"/></svg><b id="hud-pax">0</b></div>
+      <div class="chips"><span class="chip" id="hud-cam">Chase cam · C</span><span class="chip" id="hud-sound">Sound · M</span></div>
+    </div>
+
+    <div class="toasts" id="toasts"></div>
+    <div class="warns"><span class="warn" id="warn-offroad">Off road</span><span class="warn" id="warn-lane">Keep left</span></div>
+
+    <div class="hud-map">
+      <canvas id="minimap" width="220" height="220"></canvas>
+      <div class="route-bar"><div class="route-fill" id="route-fill"></div><div id="route-ticks"></div><div class="route-bus" id="route-bus"></div></div>
+    </div>
+
+    <div class="hud-speed">
+      <svg class="rpm" viewBox="0 0 120 70" aria-hidden="true"><path d="M10 64 A50 50 0 0 1 110 64" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="8" stroke-linecap="round"/><path id="rpm-arc" d="M10 64 A50 50 0 0 1 110 64" fill="none" stroke="#3ddc84" stroke-width="8" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100"/></svg>
+      <div class="speed-num"><b id="hud-speed">0</b><span>km/h</span></div>
+      <span class="gear" id="hud-gear">N</span>
+    </div>
+
+    <div class="hud-keys" id="hud-keys">
+      <span><kbd>W</kbd><kbd>S</kbd> drive</span><span><kbd>A</kbd><kbd>D</kbd> steer</span><span><kbd>Space</kbd> handbrake</span><span><kbd>H</kbd> horn</span><span><kbd>C</kbd> camera</span><span><kbd>Esc</kbd> pause</span>
+    </div>
+  </section>
+
+  <!-- ===================== PAUSE ===================== -->
+  <section id="screen-pause" class="screen dim">
+    <div class="panel small">
+      <h2>Paused</h2>
+      <div class="actions column">
+        <button class="btn btn-primary" id="btn-resume">Resume</button>
+        <button class="btn btn-ghost" id="btn-restart">Restart route</button>
+        <button class="btn btn-ghost" id="btn-pause-menu">Main menu</button>
       </div>
     </div>
   </section>
 
-  <!-- ===================== LOADING ===================== -->
-  <section id="screen-loading" class="screen">
-    <div class="loading-wrap">
-      <div class="loading-bar-track"><div class="loading-bar-fill" id="loading-fill"></div></div>
-      <p class="loading-label" id="loading-label">LOADING WORLD…</p>
-    </div>
-  </section>
-
-  <!-- ===================== GAME ===================== -->
-  <section id="screen-game" class="screen">
-    <canvas id="game-canvas"></canvas>
-
-    <div class="hud">
-      <div class="hud-top-left">
-        <div class="hud-block">
-          <span class="hud-label">SPEED</span>
-          <span class="hud-value" id="hud-speed">0</span>
-          <span class="hud-unit">km/h</span>
-        </div>
-        <div class="hud-block">
-          <span class="hud-label">ALT</span>
-          <span class="hud-value" id="hud-alt">0</span>
-          <span class="hud-unit">m</span>
-        </div>
+  <!-- ===================== RESULTS ===================== -->
+  <section id="screen-over" class="screen dim">
+    <div class="panel result">
+      <p class="kicker" id="over-kicker">Route complete</p>
+      <h2 id="over-title">Arrived at Nilgiri</h2>
+      <div class="stars" id="over-stars"></div>
+      <div class="result-grid">
+        <div><span class="r-num" id="over-pax">0</span><span class="r-label">Passengers delivered</span></div>
+        <div><span class="r-num" id="over-time">0:00</span><span class="r-label">Time</span></div>
+        <div><span class="r-num" id="over-score">0</span><span class="r-label">Score</span></div>
+        <div><span class="r-num" id="over-best">0</span><span class="r-label">Best</span></div>
       </div>
-      <div class="hud-top-right">
-        <div class="hud-block small">
-          <span class="hud-label">DISTANCE</span>
-          <span class="hud-value" id="hud-distance">0</span>
-          <span class="hud-unit">m</span>
-        </div>
-        <div class="hud-block small">
-          <span class="hud-label">BEST</span>
-          <span class="hud-value" id="hud-best">0</span>
-          <span class="hud-unit">m</span>
-        </div>
-      </div>
-      <div class="hud-bottom">
-        <div class="gauge">
-          <span class="hud-label">BOOST</span>
-          <div class="gauge-track"><div class="gauge-fill" id="gauge-boost"></div></div>
-        </div>
-        <div class="gauge">
-          <span class="hud-label">THRUST</span>
-          <div class="gauge-track"><div class="gauge-fill thrust" id="gauge-thrust"></div></div>
-        </div>
-      </div>
-      <div class="hud-warn" id="hud-warn"></div>
-    </div>
-
-    <div class="crash-flash" id="crash-flash"></div>
-  </section>
-
-  <!-- ===================== GAME OVER ===================== -->
-  <section id="screen-over" class="screen">
-    <div class="panel over-panel">
-      <h2 id="over-title">CRASHED</h2>
-      <p class="over-sub" id="over-sub">Your car didn't make it.</p>
-      <div class="over-stats">
-        <div><span class="over-num" id="over-distance">0</span><span class="over-label">METERS</span></div>
-        <div><span class="over-num" id="over-best">0</span><span class="over-label">BEST</span></div>
-      </div>
-      <div class="menu-actions">
-        <button class="btn btn-primary" id="btn-retry">RETRY</button>
-        <button class="btn btn-ghost" id="btn-change-car">CHANGE CAR</button>
-        <button class="btn btn-ghost" id="btn-quit-menu">MAIN MENU</button>
+      <ul class="penalties" id="over-penalties"></ul>
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-retry">Drive again</button>
+        <button class="btn btn-ghost" id="btn-over-menu">Main menu</button>
       </div>
     </div>
   </section>

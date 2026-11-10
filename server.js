@@ -47,7 +47,7 @@ function createServer() {
 if (require.main === module) {
   const port = process.env.PORT || 5173;
   createServer().listen(port, () => {
-    console.log(`AEROVOLT running at http://localhost:${port}`);
+    console.log(`Hill Tracts Express running at http://localhost:${port}`);
   });
 }
 

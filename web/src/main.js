@@ -1,189 +1,186 @@
-import { CARS } from "./cars.js";
-import { CarPreview } from "./carPreview.js";
 import { Game } from "./game.js";
 
-const screens = {};
-document.querySelectorAll(".screen").forEach((el) => (screens[el.id] = el));
+const $ = (id) => document.getElementById(id);
+const screens = [...document.querySelectorAll(".screen")];
 
-function showScreen(id) {
-  Object.values(screens).forEach((el) => el.classList.remove("active"));
-  screens[id].classList.add("active");
+/** Show exactly these screens (the HUD can stay up under the pause/results panels). */
+function show(...ids) {
+  for (const el of screens) el.classList.toggle("active", ids.includes(el.id));
 }
 
-// ---------------- Menu ----------------
-document.getElementById("btn-play").addEventListener("click", () => {
-  showScreen("screen-select");
-  preview.start();
-});
-document.getElementById("btn-howto").addEventListener("click", () => showScreen("screen-howto"));
-document.getElementById("btn-back-menu").addEventListener("click", () => showScreen("screen-menu"));
-document.getElementById("btn-select-back").addEventListener("click", () => {
-  preview.stop();
-  showScreen("screen-menu");
-});
+const fmtTime = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
 
-// ---------------- Car Select ----------------
-const previewCanvas = document.getElementById("car-preview");
-const preview = new CarPreview(previewCanvas);
-
-let carIndex = 0;
-const carNameEl = document.getElementById("car-name");
-const carDescEl = document.getElementById("car-desc");
-const dotsEl = document.getElementById("car-dots");
-const statEls = {
-  power: document.getElementById("stat-power"),
-  mass: document.getElementById("stat-mass"),
-  handling: document.getElementById("stat-handling"),
-  lift: document.getElementById("stat-lift"),
+/* ---------------- HUD ---------------- */
+const el = {
+  stopLabel: $("hud-stop-label"),
+  stopName: $("hud-stop-name"),
+  stopBn: $("hud-stop-bn"),
+  stopDist: $("hud-stop-dist"),
+  time: $("hud-time"),
+  pax: $("hud-pax"),
+  speed: $("hud-speed"),
+  gear: $("hud-gear"),
+  rpm: $("rpm-arc"),
+  routeFill: $("route-fill"),
+  routeBus: $("route-bus"),
+  routeTicks: $("route-ticks"),
+  cam: $("hud-cam"),
+  sound: $("hud-sound"),
+  warnOff: $("warn-offroad"),
+  warnLane: $("warn-lane"),
+  keys: $("hud-keys"),
 };
-
-CARS.forEach((_, i) => {
-  const dot = document.createElement("span");
-  dotsEl.appendChild(dot);
-});
-
-function renderCarSelect() {
-  const car = CARS[carIndex];
-  carNameEl.textContent = car.name;
-  carDescEl.textContent = car.desc;
-  Object.entries(statEls).forEach(([key, el]) => {
-    el.style.width = Math.round(car.stats[key] * 100) + "%";
-  });
-  [...dotsEl.children].forEach((d, i) => d.classList.toggle("active", i === carIndex));
-  preview.setCar(car);
+const last = {};
+function set(key, node, value, prop = "textContent") {
+  if (last[key] === value) return;
+  last[key] = value;
+  node[prop] = value;
 }
 
-document.getElementById("car-prev").addEventListener("click", () => {
-  carIndex = (carIndex - 1 + CARS.length) % CARS.length;
-  renderCarSelect();
-});
-document.getElementById("car-next").addEventListener("click", () => {
-  carIndex = (carIndex + 1) % CARS.length;
-  renderCarSelect();
-});
-renderCarSelect();
+function buildTicks(fracs) {
+  el.routeTicks.innerHTML = "";
+  fracs.forEach((f, i) => {
+    if (i === 0) return;
+    const t = document.createElement("div");
+    t.className = "route-tick";
+    t.style.left = `${Math.min(100, f * 100)}%`;
+    el.routeTicks.appendChild(t);
+  });
+}
 
-// ---------------- Loading ----------------
-const loadingFill = document.getElementById("loading-fill");
-const loadingLabel = document.getElementById("loading-label");
-
-let loading = false;
-function fakeLoad(cb) {
-  if (loading) return; // ignore double clicks / repeated R presses
-  loading = true;
-  showScreen("screen-loading");
-  let p = 0;
-  loadingFill.style.width = "0%";
-  const labels = ["LOADING WORLD…", "SPOOLING THRUSTERS…", "CALIBRATING HANDLING…", "READY"];
-  const timer = setInterval(() => {
-    p += 8 + Math.random() * 18;
-    if (p >= 100) {
-      p = 100;
-      loadingLabel.textContent = labels[3];
-      loadingFill.style.width = "100%";
-      clearInterval(timer);
-      setTimeout(() => {
-        loading = false;
-        cb();
-      }, 220);
-      return;
+const ui = {
+  onHud(d) {
+    if (!el.routeTicks.children.length) buildTicks(d.stopFracs);
+    if (d.next) {
+      const atStop = d.phase !== "drive";
+      set("label", el.stopLabel, atStop ? (d.phase === "doors" ? "Doors open" : "Doors closing") : "Next stop");
+      set("name", el.stopName, d.next.en);
+      set("bn", el.stopBn, d.next.bn);
+      set("dist", el.stopDist, atStop ? "" : d.next.dist > 950 ? `${(d.next.dist / 1000).toFixed(1)} km` : `${d.next.dist} m`);
     }
-    loadingFill.style.width = p + "%";
-    loadingLabel.textContent = labels[Math.min(2, Math.floor(p / 34))];
-  }, 90);
-}
+    set("time", el.time, fmtTime(d.time));
+    set("pax", el.pax, String(d.passengers));
+    set("speed", el.speed, String(d.speed));
+    set("gear", el.gear, d.gear);
+    const dash = `${Math.round(d.rpm * 100)} 100`;
+    if (last.rpm !== dash) {
+      last.rpm = dash;
+      el.rpm.setAttribute("stroke-dasharray", dash);
+    }
+    set("fill", el.routeFill.style, `${d.progress * 100}%`, "width");
+    set("bus", el.routeBus.style, `${d.progress * 100}%`, "left");
+    [...el.routeTicks.children].forEach((t, i) => t.classList.toggle("done", i + 1 < d.target));
+    set("cam", el.cam, d.cam === "chase" ? "Chase cam · C" : "Driver's seat · C");
+    set("sound", el.sound, d.muted ? "Sound off · M" : "Sound on · M");
+    el.sound.classList.toggle("off", d.muted);
+    el.warnOff.classList.toggle("show", d.offRoad);
+    el.warnLane.classList.toggle("show", d.wrongLane && !d.offRoad);
+  },
 
-// ---------------- Game setup ----------------
-const gameCanvas = document.getElementById("game-canvas");
-const gameScreen = screens["screen-game"];
+  onMessage(title, sub, kind = "info", ms = 2500) {
+    const box = $("toasts");
+    const t = document.createElement("div");
+    t.className = `toast ${kind}`;
+    const b = document.createElement("b");
+    b.textContent = title;
+    t.appendChild(b);
+    if (sub) {
+      const s = document.createElement("span");
+      s.className = "bn";
+      s.textContent = sub;
+      t.appendChild(s);
+    }
+    box.appendChild(t);
+    while (box.children.length > 3) box.firstChild.remove();
+    setTimeout(() => {
+      t.classList.add("out");
+      setTimeout(() => t.remove(), 300);
+    }, ms);
+  },
 
-let lastReason = "crash";
-const game = new Game(gameCanvas, ({ reason, distance, best }) => {
-  lastReason = reason;
-  triggerCrashFlash();
-  setTimeout(() => showGameOver(reason, distance, best), reason === "crash" ? 550 : 300);
-});
-// R restarts only from the Game Over screen — not from the menus, and not
-// in the split second before the Game Over screen appears.
-game.onRestartKey = () => {
-  if (screens["screen-over"].classList.contains("active")) document.getElementById("btn-retry").click();
+  onPause(paused) {
+    show(...(paused ? ["screen-game", "screen-pause"] : ["screen-game"]));
+  },
+
+  onEnd(r) {
+    $("over-kicker").textContent = r.success ? "Route complete" : "Run over";
+    $("over-title").textContent = r.success ? "Arrived at Nilgiri" : "Accident on the hill road";
+    const star = (on) =>
+      `<svg viewBox="0 0 24 24"><path d="M12 2l3 6.6 7.2.8-5.4 4.9 1.5 7.1L12 17.8 5.7 21.4l1.5-7.1L1.8 9.4 9 8.6z" fill="${on ? "#f2b705" : "rgba(255,255,255,0.15)"}"/></svg>`;
+    $("over-stars").innerHTML = r.success ? [1, 2, 3].map((n) => star(n <= r.stars)).join("") : "";
+    $("over-pax").textContent = r.delivered;
+    $("over-time").textContent = fmtTime(r.time);
+    $("over-score").textContent = r.score;
+    $("over-best").textContent = r.best;
+    const pen = [];
+    const s = r.stats;
+    if (r.success && r.timeBonus) pen.push(`Time bonus +${r.timeBonus}`);
+    if (s.missed) pen.push(`Missed stops ×${s.missed}`);
+    if (s.scrapes) pen.push(`Barrier scrapes ×${s.scrapes}`);
+    if (s.respawns) pen.push(`Recoveries ×${s.respawns}`);
+    if (s.wrongLane) pen.push(`Wrong lane ×${s.wrongLane}`);
+    if (!r.success) pen.push("Keep left — oncoming traffic uses the right lane");
+    $("over-penalties").innerHTML = pen.map((p) => `<li>${p}</li>`).join("");
+    show("screen-game", "screen-over");
+    renderBest();
+  },
 };
 
-const hudSpeed = document.getElementById("hud-speed");
-const hudAlt = document.getElementById("hud-alt");
-const hudDistance = document.getElementById("hud-distance");
-const hudBest = document.getElementById("hud-best");
-const gaugeBoost = document.getElementById("gauge-boost");
-const gaugeThrust = document.getElementById("gauge-thrust");
-const hudWarn = document.getElementById("hud-warn");
+/* ---------------- Game ---------------- */
+const game = new Game($("game-canvas"), ui);
+game.setMinimap($("minimap"));
 
-game.onHud((data) => {
-  hudSpeed.textContent = data.speedKmh;
-  hudAlt.textContent = data.alt;
-  hudDistance.textContent = data.distance;
-  hudBest.textContent = data.best;
-  gaugeBoost.style.width = Math.round(data.boost * 100) + "%";
-  gaugeThrust.style.width = Math.round(data.thrust * 100) + "%";
-});
-game.onWarn((text) => {
-  if (text) {
-    hudWarn.textContent = text;
-    hudWarn.classList.add("show");
-  } else {
-    hudWarn.classList.remove("show");
-  }
-});
-
-const crashFlash = document.getElementById("crash-flash");
-function triggerCrashFlash() {
-  crashFlash.classList.remove("active");
-  void crashFlash.offsetWidth; // restart animation
-  crashFlash.classList.add("active");
+function renderBest() {
+  let best = 0;
+  try {
+    best = Number(localStorage.getItem("hte_best") || 0);
+  } catch {}
+  $("menu-best").textContent = best ? `Best score: ${best}` : "";
 }
 
-document.getElementById("btn-launch").addEventListener("click", () => {
-  preview.stop();
-  fakeLoad(() => {
-    game.setCar(CARS[carIndex]);
-    showScreen("screen-game");
-    gameScreen.classList.add("active");
-    game.start();
-  });
-});
-
-// ---------------- Game Over ----------------
-const overTitle = document.getElementById("over-title");
-const overSub = document.getElementById("over-sub");
-const overDistance = document.getElementById("over-distance");
-const overBest = document.getElementById("over-best");
-
-function showGameOver(reason, distance, best) {
-  if (loading) return; // a restart is already on its way
-  overTitle.textContent = reason === "fall" ? "YOU FELL" : "CRASHED";
-  overSub.textContent =
-    reason === "fall"
-      ? "Lost altitude and dropped out of the sky."
-      : "Impact detected. The " + CARS[carIndex].name + " didn't make it.";
-  overDistance.textContent = distance;
-  overBest.textContent = best;
-  showScreen("screen-over");
+let hintTimer = 0;
+function startRun() {
+  for (const k of Object.keys(last)) delete last[k];
+  el.routeTicks.innerHTML = "";
+  $("toasts").innerHTML = "";
+  show("screen-game");
+  game.start();
+  el.keys.classList.remove("hidden");
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => el.keys.classList.add("hidden"), 12000);
 }
 
-document.getElementById("btn-retry").addEventListener("click", () => {
-  fakeLoad(() => {
-    game.setCar(CARS[carIndex]);
-    showScreen("screen-game");
-    game.start();
-  });
-});
-document.getElementById("btn-change-car").addEventListener("click", () => {
-  showScreen("screen-select");
-  renderCarSelect();
-  preview.start();
-});
-document.getElementById("btn-quit-menu").addEventListener("click", () => {
-  showScreen("screen-menu");
+function toMenu() {
+  game.toMenu();
+  show("screen-menu");
+  renderBest();
+}
+
+$("btn-play").addEventListener("click", startRun);
+$("btn-howto").addEventListener("click", () => show("screen-howto"));
+$("btn-howto-back").addEventListener("click", () => show("screen-menu"));
+$("btn-resume").addEventListener("click", () => game.pause(false));
+$("btn-restart").addEventListener("click", startRun);
+$("btn-pause-menu").addEventListener("click", toMenu);
+$("btn-retry").addEventListener("click", startRun);
+$("btn-over-menu").addEventListener("click", toMenu);
+
+// Buttons keep focus after a click; drop it so Space/Enter go to the bus, not the button.
+document.addEventListener("click", (e) => {
+  if (e.target.closest("button")) e.target.closest("button").blur();
 });
 
-// Best distance shown from the start on the HUD before first update.
-hudBest.textContent = localStorage.getItem("aerovolt_best") || "0";
+show("screen-loading");
+game
+  .init((p, label) => {
+    $("loading-fill").style.width = `${Math.round(p * 100)}%`;
+    $("loading-label").textContent = label;
+  })
+  .then(() => {
+    show("screen-menu");
+    renderBest();
+  })
+  .catch((err) => {
+    console.error(err);
+    $("loading-label").textContent = `Couldn't build the world: ${err.message}`;
+  });

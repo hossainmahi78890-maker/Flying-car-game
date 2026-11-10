@@ -1,8 +1,8 @@
 {
-  "name": "aerovolt",
-  "productName": "AEROVOLT",
+  "name": "hill-tracts-express",
+  "productName": "Hill Tracts Express",
   "version": "1.0.0",
-  "description": "Minimalist heavy-metal flying car game — pick a car, fly, don't crash or fall.",
+  "description": "Bus driving game on the hill road from Bandarban to Nilgiri in the Chittagong Hill Tracts.",
   "main": "electron/main.js",
   "scripts": {
     "start": "node server.js",
@@ -20,8 +20,8 @@
     "three": "^0.186.0"
   },
   "build": {
-    "appId": "com.aerovolt.game",
-    "productName": "AEROVOLT",
+    "appId": "com.hilltractsexpress.game",
+    "productName": "Hill Tracts Express",
     "files": [
       "web/**/*",
       "electron/**/*",
@@ -48,10 +48,10 @@
       "createDesktopShortcut": true
     },
     "appx": {
-      "identityName": "AEROVOLT",
+      "identityName": "HillTractsExpress",
       "publisher": "CN=REPLACE-WITH-YOUR-PARTNER-CENTER-PUBLISHER-ID",
       "publisherDisplayName": "REPLACE-WITH-YOUR-NAME",
-      "applicationId": "AEROVOLT"
+      "applicationId": "HillTractsExpress"
     }
   }
 }
