@@ -1,5 +1,5 @@
 import * as THREE from "../vendor/three.module.js";
-import { buildCarMesh } from "./cars.js";
+import { buildCarMesh, disposeObject } from "./cars.js";
 
 export class CarPreview {
   constructor(canvas) {
@@ -29,20 +29,27 @@ export class CarPreview {
     this._raf = null;
     this._resize = this._resize.bind(this);
     window.addEventListener("resize", this._resize);
+    // The showroom is created while its screen is hidden (0×0), so also resize
+    // whenever the canvas itself changes size — e.g. when the screen is shown.
+    if ("ResizeObserver" in window) new ResizeObserver(this._resize).observe(canvas);
     this._resize();
     this._animate = this._animate.bind(this);
   }
 
   _resize() {
-    const w = this.canvas.clientWidth || 400;
-    const h = this.canvas.clientHeight || 300;
+    const w = this.canvas.clientWidth;
+    const h = this.canvas.clientHeight;
+    if (!w || !h) return; // hidden — size it once it is visible
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
   }
 
   setCar(carDef) {
-    if (this.carGroup) this.scene.remove(this.carGroup);
+    if (this.carGroup) {
+      this.scene.remove(this.carGroup);
+      disposeObject(this.carGroup);
+    }
     this.carGroup = buildCarMesh(carDef);
     this.carGroup.position.y = -0.3;
     // The car's forward/nose faces -Z (matching in-game travel direction), but this
@@ -54,6 +61,7 @@ export class CarPreview {
 
   start() {
     if (this._raf) return;
+    this._resize();
     this._animate();
   }
 

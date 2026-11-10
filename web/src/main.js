@@ -67,7 +67,10 @@ renderCarSelect();
 const loadingFill = document.getElementById("loading-fill");
 const loadingLabel = document.getElementById("loading-label");
 
+let loading = false;
 function fakeLoad(cb) {
+  if (loading) return; // ignore double clicks / repeated R presses
+  loading = true;
   showScreen("screen-loading");
   let p = 0;
   loadingFill.style.width = "0%";
@@ -79,7 +82,10 @@ function fakeLoad(cb) {
       loadingLabel.textContent = labels[3];
       loadingFill.style.width = "100%";
       clearInterval(timer);
-      setTimeout(cb, 220);
+      setTimeout(() => {
+        loading = false;
+        cb();
+      }, 220);
       return;
     }
     loadingFill.style.width = p + "%";
@@ -97,7 +103,11 @@ const game = new Game(gameCanvas, ({ reason, distance, best }) => {
   triggerCrashFlash();
   setTimeout(() => showGameOver(reason, distance, best), reason === "crash" ? 550 : 300);
 });
-game.onRestartKey = () => document.getElementById("btn-retry").click();
+// R restarts only from the Game Over screen — not from the menus, and not
+// in the split second before the Game Over screen appears.
+game.onRestartKey = () => {
+  if (screens["screen-over"].classList.contains("active")) document.getElementById("btn-retry").click();
+};
 
 const hudSpeed = document.getElementById("hud-speed");
 const hudAlt = document.getElementById("hud-alt");
@@ -148,6 +158,7 @@ const overDistance = document.getElementById("over-distance");
 const overBest = document.getElementById("over-best");
 
 function showGameOver(reason, distance, best) {
+  if (loading) return; // a restart is already on its way
   overTitle.textContent = reason === "fall" ? "YOU FELL" : "CRASHED";
   overSub.textContent =
     reason === "fall"

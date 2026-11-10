@@ -1,6 +1,6 @@
 import * as THREE from "../vendor/three.module.js";
-import { buildCarMesh } from "./cars.js";
-import { World, FALL_Y, SIDE_LIMIT, FLIGHT_MIN_Y, FLIGHT_MAX_Y } from "./world.js";
+import { buildCarMesh, disposeObject } from "./cars.js";
+import { World, FALL_Y, SIDE_LIMIT, FLIGHT_MIN_Y, CEILING_Y } from "./world.js";
 
 const GRAVITY = 9.2;
 const BASE_ACCEL = 26;
@@ -12,6 +12,9 @@ const BOOST_REGEN = 0.12; // per second while not boosting
 const DRAG = 0.55;
 const VERTICAL_DRAG = 0.9;
 const MAX_SPEED_MPS = 95;
+// Physics runs in small fixed steps so a fast car can never skip past a thin
+// wall between frames (at 95 m/s a 30 fps frame would move ~3 m).
+const MAX_STEP = 1 / 120;
 
 export class Game {
   constructor(canvas, onCrash) {
@@ -61,12 +64,20 @@ export class Game {
   }
 
   _bindInput() {
+    const GAME_KEYS = new Set(["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
     window.addEventListener("keydown", (e) => {
       this.keys[e.code] = true;
-      if (e.code === "KeyR" && this.state === "ended") this.onRestartKey && this.onRestartKey();
+      // Stop Space/arrows from scrolling or pressing a focused button mid-run.
+      if (this.state === "running" && GAME_KEYS.has(e.code)) e.preventDefault();
+      if (e.code === "KeyR" && !e.repeat && this.state === "ended") this.onRestartKey && this.onRestartKey();
     });
     window.addEventListener("keyup", (e) => {
       this.keys[e.code] = false;
+    });
+    // Releasing a key while the window is in the background never fires keyup,
+    // so forget everything held when focus leaves — otherwise keys get stuck.
+    window.addEventListener("blur", () => {
+      this.keys = Object.create(null);
     });
   }
 
@@ -81,9 +92,13 @@ export class Game {
   setCar(carDef) {
     if (this.carGroup) {
       this.scene.remove(this.carGroup);
+      disposeObject(this.carGroup);
     }
     this.carDef = carDef;
     this.carGroup = buildCarMesh(carDef);
+    // Yaw first, then pitch, then roll — so the car pitches and banks around its
+    // own axes no matter which way it is heading.
+    this.carGroup.rotation.order = "YXZ";
     this.scene.add(this.carGroup);
   }
 
@@ -117,8 +132,13 @@ export class Game {
 
   _loop() {
     if (this.state !== "running") return;
-    const dt = Math.min(this._clock.getDelta(), 0.05);
-    this._update(dt);
+    let remaining = Math.min(this._clock.getDelta(), 0.05);
+    while (remaining > 1e-6 && this.state === "running") {
+      const step = Math.min(remaining, MAX_STEP);
+      this._update(step);
+      remaining -= step;
+    }
+    if (this.state !== "running") return;
     this._render();
     this._raf = requestAnimationFrame(this._loopBound);
   }
@@ -179,15 +199,25 @@ export class Game {
     // Integrate
     this.pos.addScaledVector(this.vel, dt);
 
+    // Thrusters cut out at the ceiling, so nobody can fly over the obstacles.
+    const atCeiling = this.pos.y >= CEILING_Y;
+    if (atCeiling) {
+      this.pos.y = CEILING_Y;
+      if (this.vel.y > 0) this.vel.y = 0;
+    }
+
     // Visual banking / pitch feedback
-    const targetRoll = (rightInput - leftInput) * 0.55;
+    // Bank into turns (right turn = right side dips) and pitch the nose with climb/dive.
+    const targetRoll = (leftInput - rightInput) * 0.55;
     this.roll += (targetRoll - this.roll) * Math.min(1, dt * 6);
-    const targetPitch = THREE.MathUtils.clamp(-this.vel.y * 0.03, -0.5, 0.5);
+    const targetPitch = THREE.MathUtils.clamp(this.vel.y * 0.03, -0.5, 0.5);
     this.pitch += (targetPitch - this.pitch) * Math.min(1, dt * 4);
 
     if (this.carGroup) {
       this.carGroup.position.copy(this.pos);
-      this.carGroup.rotation.set(this.pitch, this.yaw, this.roll);
+      // The car model's nose points along its local -Z, while `forward` is
+      // (sin yaw, 0, cos yaw) — add a half turn so the nose leads, not the tail.
+      this.carGroup.rotation.set(this.pitch, this.yaw + Math.PI, this.roll);
       const glowStrength = 0.6 + (boostHeld ? 1.8 : 0) + forwardInput * 0.6;
       if (this.carGroup.userData.thrusterRear) {
         this.carGroup.userData.thrusterRear.material.emissiveIntensity = glowStrength * 1.4;
@@ -224,7 +254,10 @@ export class Game {
 
     // Low-altitude warning
     if (this._onWarn) {
-      this._onWarn(!ended && this.pos.y < FLIGHT_MIN_Y + 4 ? "LOW ALTITUDE" : "");
+      let warn = "";
+      if (!ended && this.pos.y < FLIGHT_MIN_Y + 4) warn = "LOW ALTITUDE";
+      else if (!ended && atCeiling) warn = "MAX ALTITUDE";
+      this._onWarn(warn);
     }
 
     if (ended) {

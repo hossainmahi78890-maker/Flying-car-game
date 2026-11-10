@@ -48,7 +48,7 @@ Before this will produce a package you can actually submit to the Microsoft Stor
 - **SHIFT** — boost (limited, refills over time — or fly through a cyan ring to refill instantly)
 - **R** — restart after a run ends
 
-Land level and slow, or you crash. Drift off the edge of the flight corridor or lose too much altitude, and you fall. Either one ends the run. Distance flown is your score; your best is saved locally.
+Hit a pillar or a wall and you crash. Drift off the edge of the flight corridor or lose too much altitude, and you fall. Either one ends the run. Thrusters cut out at max altitude, so the only way past a wall is through its gap. Distance flown is your score; your best is saved locally.
 
 ## Cars
 

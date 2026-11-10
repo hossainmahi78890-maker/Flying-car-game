@@ -51,6 +51,15 @@ export const CARS = [
   },
 ];
 
+/** Frees the GPU memory held by a car built with buildCarMesh (it owns all its materials). */
+export function disposeObject(root) {
+  root.traverse((obj) => {
+    if (obj.geometry) obj.geometry.dispose();
+    const mats = Array.isArray(obj.material) ? obj.material : obj.material ? [obj.material] : [];
+    mats.forEach((m) => m.dispose());
+  });
+}
+
 /**
  * Builds a minimalist low-poly car mesh from primitives.
  * Returns a THREE.Group with a `.collisionRadius` sized off the car's scale.

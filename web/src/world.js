@@ -5,6 +5,15 @@ export const FLIGHT_MIN_Y = 2;
 export const FLIGHT_MAX_Y = 34;
 export const FALL_Y = -22; // dropping below this = "you fell"
 export const SIDE_LIMIT = 42; // drifting past this on X = "flew off the map"
+export const CEILING_Y = FLIGHT_MAX_Y + 2; // thrusters cut out above this
+// The floor grid far below. Walls and pillars stand on it, so there is no
+// way to slip underneath them before falling out of the run.
+const GROUND_Y = FALL_Y - 4;
+// Walls span the whole flyable width (plus a margin) and rise above the
+// ceiling, so a wall can only be passed through its gap — and every part
+// that can hit you is actually drawn.
+const WALL_WIDTH = SIDE_LIMIT * 2 + 6;
+const WALL_TOP_Y = CEILING_Y + 4;
 
 const CHUNK_LENGTH = 70;
 const CHUNKS_AHEAD = 6;
@@ -33,6 +42,10 @@ const ringMat = new THREE.MeshStandardMaterial({
   metalness: 0.2,
   roughness: 0.3,
 });
+const gapOutlineMat = new THREE.LineBasicMaterial({ color: 0xff5a1f });
+const groundMat = new THREE.MeshBasicMaterial({ color: 0x0d0e12 });
+// Reused by every chunk, so chunk cleanup must not dispose them.
+for (const m of [wallMat, pillarMat, edgeMat, ringMat, gapOutlineMat, groundMat]) m.userData.shared = true;
 
 export class World {
   constructor(scene) {
@@ -113,14 +126,14 @@ export class World {
     // Ground marker strip far below for depth/void cue (purely visual).
     const strip = new THREE.Mesh(
       new THREE.PlaneGeometry(SIDE_LIMIT * 2.4, CHUNK_LENGTH),
-      new THREE.MeshBasicMaterial({ color: 0x0d0e12 })
+      groundMat
     );
     strip.rotation.x = -Math.PI / 2;
-    strip.position.set(0, FALL_Y - 4, zStart - CHUNK_LENGTH / 2);
+    strip.position.set(0, GROUND_Y, zStart - CHUNK_LENGTH / 2);
     group.add(strip);
 
     const grid = new THREE.GridHelper(SIDE_LIMIT * 2.4, 24, 0x2a2d36, 0x1a1c22);
-    grid.position.set(0, FALL_Y - 3.9, zStart - CHUNK_LENGTH / 2);
+    grid.position.set(0, GROUND_Y + 0.1, zStart - CHUNK_LENGTH / 2);
     group.add(grid);
 
     this.scene.add(group);
@@ -130,8 +143,8 @@ export class World {
   _addPillar(group, chunkIdx, z, rand, difficulty) {
     const radius = 1.4 + rand() * (1.6 - difficulty * 0.6);
     const x = (rand() * 2 - 1) * (CORRIDOR_HALF_WIDTH - radius - 2);
-    const yBase = FLIGHT_MIN_Y - 6;
-    const height = FLIGHT_MAX_Y - yBase + 6 + rand() * 6;
+    const yBase = GROUND_Y;
+    const height = FLIGHT_MAX_Y + 6 + rand() * 6 - yBase; // top sits above the ceiling
     const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius * 1.05, height, 10), pillarMat);
     mesh.position.set(x, yBase + height / 2, z);
     group.add(mesh);
@@ -149,24 +162,26 @@ export class World {
     const gapH = 8 - difficulty * 2 + rand() * 2;
     const gapX = (rand() * 2 - 1) * (CORRIDOR_HALF_WIDTH - gapW);
     const gapY = FLIGHT_MIN_Y + 3 + rand() * (FLIGHT_MAX_Y - FLIGHT_MIN_Y - gapH - 3);
-    const wallHeight = FLIGHT_MAX_Y + 10;
-    const wallWidth = CORRIDOR_HALF_WIDTH * 2 + 6;
+    const wallBottom = GROUND_Y;
+    const wallTop = WALL_TOP_Y;
+    const wallHeight = wallTop - wallBottom;
+    const wallWidth = WALL_WIDTH;
     const thickness = 1.2;
 
     const bars = [];
     // left bar
     const leftW = gapX - gapW / 2 + wallWidth / 2;
-    bars.push({ w: leftW, h: wallHeight, x: -wallWidth / 2 + leftW / 2, y: wallHeight / 2 - 6 });
+    bars.push({ w: leftW, h: wallHeight, x: -wallWidth / 2 + leftW / 2, y: wallBottom + wallHeight / 2 });
     // right bar
     const rightStart = gapX + gapW / 2;
     const rightW = wallWidth / 2 - rightStart;
-    bars.push({ w: rightW, h: wallHeight, x: rightStart + rightW / 2, y: wallHeight / 2 - 6 });
+    bars.push({ w: rightW, h: wallHeight, x: rightStart + rightW / 2, y: wallBottom + wallHeight / 2 });
     // bottom bar (within gap column)
-    const bottomH = gapY - (-6);
-    bars.push({ w: gapW, h: bottomH, x: gapX, y: -6 + bottomH / 2 });
+    const bottomH = gapY - wallBottom;
+    bars.push({ w: gapW, h: bottomH, x: gapX, y: wallBottom + bottomH / 2 });
     // top bar (within gap column)
     const topStart = gapY + gapH;
-    const topH = wallHeight - 6 - topStart;
+    const topH = wallTop - topStart;
     bars.push({ w: gapW, h: topH, x: gapX, y: topStart + topH / 2 });
 
     for (const b of bars) {
@@ -177,13 +192,10 @@ export class World {
     }
 
     // glowing frame around the gap so it reads clearly at speed
-    const frame = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.08, 4, 4), edgeMat);
     const frameOutline = new THREE.EdgesGeometry(new THREE.BoxGeometry(gapW, gapH, 0.1));
-    const outlineMesh = new THREE.LineSegments(frameOutline, new THREE.LineBasicMaterial({ color: 0xff5a1f }));
+    const outlineMesh = new THREE.LineSegments(frameOutline, gapOutlineMat);
     outlineMesh.position.set(gapX, gapY + gapH / 2, z);
     group.add(outlineMesh);
-    frame.visible = false;
-    group.add(frame);
 
     this.walls.push({
       chunk: chunkIdx,
@@ -194,7 +206,8 @@ export class World {
       gapW,
       gapH,
       wallWidth,
-      wallHeight,
+      wallBottom,
+      wallTop,
     });
   }
 
@@ -228,6 +241,10 @@ export class World {
 
     for (const w of this.walls) {
       if (Math.abs(w.z - carPos.z) > w.thickness / 2 + carRadius) continue;
+      // Only the wall that is drawn can hit you.
+      const besideWall = Math.abs(carPos.x) > w.wallWidth / 2 + carRadius;
+      const overOrUnderWall = carPos.y > w.wallTop + carRadius || carPos.y < w.wallBottom - carRadius;
+      if (besideWall || overOrUnderWall) continue;
       const insideGapX = Math.abs(carPos.x - w.gapX) < w.gapW / 2 - carRadius * 0.3;
       const insideGapY = carPos.y > w.gapY + carRadius * 0.3 && carPos.y < w.gapY + w.gapH - carRadius * 0.3;
       if (!(insideGapX && insideGapY)) {
@@ -255,8 +272,9 @@ export class World {
 function disposeGroup(group) {
   group.traverse((obj) => {
     if (obj.geometry) obj.geometry.dispose();
-    if (obj.material) {
-      if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose());
-    }
+    const mats = Array.isArray(obj.material) ? obj.material : obj.material ? [obj.material] : [];
+    mats.forEach((m) => {
+      if (!m.userData.shared) m.dispose();
+    });
   });
 }
